@@ -1,6 +1,7 @@
 import socket
 from _thread import *
 from pip._vendor.distlib.compat import raw_input
+import json
 
 
 def main():
@@ -34,16 +35,27 @@ def handle_connections(server_socket):
 def handle_client_connection(client_connection):
     # Handle the connection
     data = 'Connection Accepted'.encode('UTF-8')
-    while True:
+    client_connection.send(data)
 
-        if data.decode('UTF=8') == 'quit':
+    while True:
+        data = client_connection.recv(1024)
+        request_body = json.loads(data)
+
+        if request_body.get('header') == 'quit':
             response_data = 'Connection Terminating'
             client_connection.send(response_data.encode('UTF8'))
             break
 
-        response_data = "You sent: " + str(data)
-        client_connection.send(response_data.encode('UTF-8'))
-        data = client_connection.recv(1024)
+        if request_body.get('header') == 'file':
+            file = open('files-recieved/' + request_body.get('file_name'), 'wb')
+            sent_file = client_connection.recv(request_body.get('file_size'))
+            file.write(sent_file)
+            file.close()
+            client_connection.send('File saved'.encode('UTF-8'))
+
+        elif request_body.get('header') == 'message':
+            client_connection.send(('You sent: ' + request_body.get('message')).encode('UTF-8'))
+            client_connection.send('end'.encode('UTF-8'))
 
     client_connection.close()
 

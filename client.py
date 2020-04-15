@@ -1,5 +1,7 @@
+import os
 import socket
 from pip._vendor.distlib.compat import raw_input
+import json
 
 
 def main():
@@ -10,16 +12,66 @@ def main():
     client_socket.connect((socket.gethostname(), 2222))
 
     # Send some information to the host.
-    user_input = raw_input("Send to host: ")
+    user_input = raw_input('What would you like to do?\n\t1. Send File\n\t2. Send Message\n\t3. Quit\nInput: ')
 
     while True:
-        client_socket.send(user_input.encode('UTF-8'))
-        print(client_socket.recv(1024).decode('UTF-8'), '\n')
 
         if user_input == 'quit':
+            body = {
+                'header': 'quit'
+            }
+
+            client_socket.send(json.dumps(user_input).encode('UTF-8'))
+            print(client_socket.recv(1024).decode('UTF-8'))
             break
 
-        user_input = raw_input("Send to host: ")
+        if user_input == 'Send File':
+            file_path = raw_input('What is the file path? ')
+            send_file(client_socket, file_path)
+        elif user_input == 'Send Message':
+            user_input = raw_input('What is the Message? ')
+
+            body = {
+                'header': 'message',
+                'message': user_input
+            }
+
+            client_socket.send(json.dumps(body).encode('UTF-8'))
+            message = ''
+
+            while message != 'end':
+                message = client_socket.recv(1024).decode('UTF-8')
+                print(message)
+
+        user_input = raw_input('What would you like to do?\n\t1. Send File\n\t2. Send Message\n\t3. Quit\nInput: ')
+
+    client_socket.close()
+
+
+def send_file(client_socket, file_path):
+    try:
+        file_size = os.path.getsize(file_path)
+        body = {
+            'header': 'file',
+            'file_type': os.path.splitext(file_path)[1],
+            'file_name': os.path.basename(file_path),
+            'file_size': file_size,
+        }
+
+        file = open(file_path, 'rb')
+
+        file_bytes = file.read(file_size)
+        file.close()
+
+        print(body.get('file_type'))
+
+        client_socket.sendall(json.dumps(body).encode('UTF-8'))
+        client_socket.sendall(file_bytes)
+
+        print(client_socket.recv(1024).decode('UTF-8'))
+    except FileNotFoundError:
+        print('File not found. Try again.')
+        pass
 
 
 if __name__ == '__main__':
