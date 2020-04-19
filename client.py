@@ -18,6 +18,7 @@ def main():
                            '\t2. Send Message\n'
                            '\t3. Quit\n'
                            '\t4. View Files\n'
+                           '\t5. New User\n'
                            'Input: ').lower()
 
     while True:
@@ -54,8 +55,25 @@ def main():
                                                                                            "PycharmProjects",
                                                                                            "Python-Socket-Server-Client",
                                                                                            "files-received"))
+        elif user_input == 'new user':
+            username = raw_input('Username: ')
+            password = raw_input('Password: ')
 
-        user_input = raw_input('\nWhat would you like to do?\n\t1. Send File\n\t2. Send Message\n\t3. Quit\nInput: ')
+            body = {
+                'header': 'New User',
+                'username': username,
+                'password': password
+            }
+
+            client_socket.sendall(json.dumps(body).encode('UTF-8'))
+
+        user_input = raw_input('What would you like to do?\n'
+                               '\t1. Send File\n'
+                               '\t2. Send Message\n'
+                               '\t3. Quit\n'
+                               '\t4. View Files\n'
+                               '\t5. New User\n'
+                               'Input: ').lower()
 
     client_socket.close()
 
@@ -64,6 +82,7 @@ def send_file(client_socket, file_name):
     try:
         file_path = os.path.abspath(file_name)
         file_size = os.path.getsize(file_path)
+
         body = {
             'header': 'file',
             'file_type': os.path.splitext(file_path)[1],

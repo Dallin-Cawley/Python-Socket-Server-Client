@@ -3,6 +3,7 @@ from _thread import *
 from pip._vendor.distlib.compat import raw_input
 import json
 import os
+from security import security
 
 
 def main():
@@ -42,6 +43,7 @@ def handle_client_connection(client_connection):
         data = client_connection.recv(1024)
         request_body = json.loads(data)
         header = request_body.get('header')
+
         # When the Client wishes to disconnect
         if header == 'quit':
             response_data = 'Connection Terminating'
@@ -62,6 +64,15 @@ def handle_client_connection(client_connection):
         elif header == 'ls':
             client_connection.send(get_current_directory_names(request_body=request_body))
 
+        # If the client wants to make a new user
+        elif header == 'New User':
+            hashed_password = security.encrypt_password(request_body.get('password'))
+            username = request_body.get('username')
+
+            file = open('security/passwords.txt', 'wb')
+            file.write((username + '\n' + hashed_password + '\n').encode('UTF-8'))
+            file.close()
+
     client_connection.close()
 
 
@@ -71,8 +82,8 @@ def get_current_directory_names(request_body):
     i = 0
     for root, directory, files in dir_file:
         dict_of_files = {
-            'root': root,
-            'directories': directory,
+            'current_directory': root,
+            'sub_directories': directory,
             'file_names': files,
         }
         dict_of_dict_of_files.update({i: dict_of_files})
