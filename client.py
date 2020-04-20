@@ -12,70 +12,75 @@ def main():
     client_socket.connect((socket.gethostname(), 8001))
     print(client_socket.recv(1024).decode('UTF-8'), '\n')
 
-    # Send some information to the host.
-    user_input = raw_input('What would you like to do?\n'
-                           '\t1. Send File\n'
-                           '\t2. Send Message\n'
-                           '\t3. Quit\n'
-                           '\t4. View Files\n'
-                           '\t5. New User\n'
-                           'Input: ').lower()
-
+    # Attempt a Login
     while True:
+        if login(client_socket=client_socket):
+            while True:
+                user_input = raw_input('What would you like to do?\n'
+                                       '\t1. Send File\n'
+                                       '\t2. New User\n'
+                                       '\t3. View Files\n'
+                                       '\t4. Quit\n'
+                                       'Input: ').lower()
 
-        if user_input == 'quit':
-            body = {
-                'header': 'quit'
-            }
+                if user_input == 'quit':
+                    body = {
+                        'header': 'quit'
+                    }
 
-            client_socket.send(json.dumps(body).encode('UTF-8'))
-            print(client_socket.recv(1024).decode('UTF-8'))
+                    client_socket.send(json.dumps(body).encode('UTF-8'))
+                    response = json.loads(client_socket.recv(1024).decode('UTF-8'))
+                    print(response.get('response'))
+                    break
+
+                if user_input == 'send file':
+                    file_path = raw_input('What is the file path? ')
+                    send_file(client_socket, file_path)
+
+                elif user_input == 'view files':
+                    handle_file_view(client_socket=client_socket, requested_directory=os.path.join("C:\\", "Users",
+                                                                                                   "lette",
+                                                                                                   "PycharmProjects",
+                                                                                                   "Python-Socket"
+                                                                                                   "-Server-Client",
+                                                                                                   "files-received"))
+                elif user_input == 'new user':
+                    username = raw_input('Username: ')
+                    password = raw_input('Password: ')
+                    user = raw_input('Name: ')
+
+                    body = {
+                        'header': 'new user',
+                        'username': username,
+                        'password': password,
+                        'name': user
+                    }
+
+                    client_socket.sendall(json.dumps(body).encode('UTF-8'))
+
+            client_socket.close()
             break
+        else:
+            print('Username or Password Incorrect\n')
 
-        if user_input == 'send file':
-            file_path = raw_input('What is the file path? ')
-            send_file(client_socket, file_path)
 
-        elif user_input == 'send message':
-            user_input = raw_input('What is the Message? ')
+def login(client_socket):
+    username = raw_input('Login:\n\tUsername: ')
+    password = raw_input('\tPassword: ')
 
-            body = {
-                'header': 'message',
-                'message': user_input
-            }
+    body = {
+        'header': 'login',
+        'username': username,
+        'password': password
+    }
 
-            client_socket.send(json.dumps(body).encode('UTF-8'))
-            message = ''
-            while message != 'end':
-                message = client_socket.recv(1024).decode('UTF-8')
-                print(message)
-
-        elif user_input == 'view files':
-            handle_file_view(client_socket=client_socket, requested_directory=os.path.join("C:\\", "Users", "lette",
-                                                                                           "PycharmProjects",
-                                                                                           "Python-Socket-Server-Client",
-                                                                                           "files-received"))
-        elif user_input == 'new user':
-            username = raw_input('Username: ')
-            password = raw_input('Password: ')
-
-            body = {
-                'header': 'New User',
-                'username': username,
-                'password': password
-            }
-
-            client_socket.sendall(json.dumps(body).encode('UTF-8'))
-
-        user_input = raw_input('What would you like to do?\n'
-                               '\t1. Send File\n'
-                               '\t2. Send Message\n'
-                               '\t3. Quit\n'
-                               '\t4. View Files\n'
-                               '\t5. New User\n'
-                               'Input: ').lower()
-
-    client_socket.close()
+    client_socket.sendall(json.dumps(body).encode('UTF-8'))
+    response = json.loads(client_socket.recv(1024).decode('UTF-8'))
+    print('Response: ', response.get('response'))
+    if response.get('response') == 'true':
+        return True
+    else:
+        return False
 
 
 def send_file(client_socket, file_name):
