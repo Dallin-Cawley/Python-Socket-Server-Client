@@ -3,6 +3,8 @@ import socket
 from pip._vendor.distlib.compat import raw_input
 import json
 
+user = ''
+
 
 def main():
     # Create a socket
@@ -10,7 +12,7 @@ def main():
 
     # Connect to remote host
     client_socket.connect((socket.gethostname(), 8001))
-    print(client_socket.recv(1024).decode('UTF-8'), '\n')
+    print(json.loads(client_socket.recv(1024).decode('UTF-8')).get('response'), '\n')
 
     # Attempt a Login
     while True:
@@ -29,8 +31,7 @@ def main():
                     }
 
                     client_socket.send(json.dumps(body).encode('UTF-8'))
-                    response = json.loads(client_socket.recv(1024).decode('UTF-8'))
-                    print(response.get('response'))
+                    print(json.loads(client_socket.recv(1024).decode('UTF-8')).get('response'))
                     break
 
                 if user_input == 'send file':
@@ -65,6 +66,7 @@ def main():
 
 
 def login(client_socket):
+    global user
     username = raw_input('Login:\n\tUsername: ')
     password = raw_input('\tPassword: ')
 
@@ -76,8 +78,9 @@ def login(client_socket):
 
     client_socket.sendall(json.dumps(body).encode('UTF-8'))
     response = json.loads(client_socket.recv(1024).decode('UTF-8'))
-    print('Response: ', response.get('response'))
+
     if response.get('response') == 'true':
+        user = response.get('user')
         return True
     else:
         return False
@@ -93,7 +96,8 @@ def send_file(client_socket, file_name):
             'file_type': os.path.splitext(file_path)[1],
             'file_name': os.path.basename(file_path),
             'file_size': file_size,
-            'directory': 'files-received'
+            'directory': user
+
         }
 
         file = open(file_path, 'rb')
@@ -104,7 +108,7 @@ def send_file(client_socket, file_name):
         client_socket.sendall(json.dumps(body).encode('UTF-8'))
         client_socket.sendall(file_bytes)
 
-        print(client_socket.recv(1024).decode('UTF-8'))
+        print(json.loads(client_socket.recv(1024).decode('UTF-8')).get('response'))
     except FileNotFoundError:
         print('File not found. Try again.')
         pass

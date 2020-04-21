@@ -18,17 +18,18 @@ class RequestHandlerSwitch(object):
 
     def handle_login(self, request_body):
         if request_body.get('username') in globals.users:
+            print('\nHashed password: ', security.encrypt_password(request_body.get('password')), '\n')
             if security.check_encrypted_password(request_body.get('password'),
                                                  globals.users.get(request_body.get('username')).get('password')):
                 body = {
-                    'response': 'true'
+                    'response': 'true',
+                    'user': globals.users.get(request_body.get('username')).get('user')
                 }
             else:
                 body = {
                     'response': 'false'
                 }
         else:
-            print('users does not contain username\n')
             body = {
                 'response': 'false'
             }
@@ -57,7 +58,7 @@ class RequestHandlerSwitch(object):
         # Create file path
         client_connection = request_body.get('client_connection')
         directory = os.path.join("C:\\", "Users", "lette", "PycharmProjects", "Python-Socket-Server-Client",
-                                 request_body.get('directory'))
+                                  request_body.get('directory'))
 
         # If the requested directory doesn't exist, create it.
         if not os.path.exists(directory):
