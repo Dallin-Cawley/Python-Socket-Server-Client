@@ -2,21 +2,46 @@ import os
 import socket
 from pip._vendor.distlib.compat import raw_input
 import json
+import tkinter
 
-user = ''
+user = ""
+login_success = False
+client_socket = socket.socket()
 
 
 def main():
-    # Create a socket
-    client_socket = socket.socket()
+    global login_success
+    main_window = tkinter.Tk()
+    main_window.geometry('750x400')
+    main_window.resizable(False, False)
 
-    # Connect to remote host
-    client_socket.connect((socket.gethostname(), 8001))
-    print(json.loads(client_socket.recv(1024).decode('UTF-8')).get('response'), '\n')
+    login_canvas = tkinter.Canvas(main_window, width='750', height='400')
+    login_canvas.pack()
 
-    # Attempt a Login
+    username_label = tkinter.Label(main_window, text="Username:")
+    login_canvas.create_window(340, 155, window=username_label)
+
+    username_input = tkinter.Entry(main_window)
+    login_canvas.create_window(375, 175, window=username_input)
+
+    password_label = tkinter.Label(main_window, text="Password:")
+    login_canvas.create_window(340, 200, window=password_label)
+
+    password_input = tkinter.Entry(main_window)
+    login_canvas.create_window(375, 225, window=password_input)
+
+    entry_boxes = {
+        'username': username_input,
+        'password': password_input
+    }
+
+    login_button = tkinter.Button(text='Submit', command=lambda: login(entry_boxes=entry_boxes))
+    login_canvas.create_window(385, 250, window=login_button)
+
+    main_window.mainloop()
+
     while True:
-        if login(client_socket=client_socket):
+        if login_success:
             while True:
                 user_input = raw_input('What would you like to do?\n'
                                        '\t1. Send File\n'
@@ -65,25 +90,30 @@ def main():
             print('Username or Password Incorrect\n')
 
 
-def login(client_socket):
+def login(entry_boxes):
+    global login_success
     global user
-    username = raw_input('Login:\n\tUsername: ')
-    password = raw_input('\tPassword: ')
-
+    global client_socket
+    print('inside login()\n')
     body = {
         'header': 'login',
-        'username': username,
-        'password': password
+        'username': entry_boxes.get('username').get(),
+        'password': entry_boxes.get('password').get()
     }
+
+    # Connect to remote host
+    client_socket.connect((socket.gethostname(), 8001))
+    print(json.loads(client_socket.recv(1024).decode('UTF-8')).get('response'), '\n')
 
     client_socket.sendall(json.dumps(body).encode('UTF-8'))
     response = json.loads(client_socket.recv(1024).decode('UTF-8'))
 
     if response.get('response') == 'true':
         user = response.get('user')
-        return True
+        login_success = True
+        return True, client_socket
     else:
-        return False
+        return False, False
 
 
 def send_file(client_socket, file_name):
